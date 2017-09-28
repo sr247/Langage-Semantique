@@ -96,13 +96,13 @@ let find a t =
 let double_barrel_cps_find a t =
   let rec find t kf knf =
     match t with
-    | Leaf -> knf () (*  Soit je renvoi unit, soit je renvoi continuation ( qui fera unit).. à voir *)
+    | Leaf -> knf (); print_int 0 (*  Soit je renvoi unit, soit je renvoi continuation ( qui fera unit).. à voir *)
     | Node(e, g, d) ->
-       find d (fun tlist -> if e = a then raise (Found glist) else try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist)));kf []
+       find d (fun glist -> if e = a then raise (Found glist) else try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf; kf []; print_int e
   in
   try
-    find t (fun x -> raise (Found [x])) (fun y -> y)
-  with Found(path) -> Some path
+    find t (fun x -> raise (Found x)) (fun y -> y)
+  with Found(path) -> raise (Found path)
 
-(* let ctree = Node (2, Node (5, Leaf, Leaf), Node (3, Leaf, Node(4,Leaf, Leaf))) *)
-(* let () = double_barrel_cps_find 4 ctree *)
+let ctree = Node (2, Node (5, Leaf, Leaf), Node (3, Leaf, Node(4,Leaf, Leaf)))
+let () = double_barrel_cps_find 4 ctree
