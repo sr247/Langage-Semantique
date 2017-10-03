@@ -1,5 +1,5 @@
 open Printf
-  
+
 exception Element_Found
 type 'a tree =
   | Leaf
@@ -69,6 +69,7 @@ Des qu'uon est égal à a : on fait la continuation qui try with : StopIteration
                                 
 (* Question 3 : indication *)
 exception Found of int list
+                       
 let find a t =
   let rec find t = match t with
     | Leaf -> ()
@@ -87,15 +88,38 @@ let find a t =
 let double_barrel_cps_find a t =
   let rec find t kf knf =
     match t with
-    | Leaf -> (); printf " Leaf "
-    | Node(e, Leaf, Leaf) -> if e = a then raise (Found [e]) else knf ()
-    | Node(e, g, d) -> printf " Parent Node %d " e;
-  (* find d (fun glist -> try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf *)
-      find d (fun glist -> try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf
+    | Leaf -> printf "Leaf\n"; knf ()
+    | Node(e, g, d) ->
+       if e = a then
+         begin printf "Node %d\n" e; kf e end
+       else
+         begin
+           try  printf "Node %d\n" e; find g kf knf; find d kf knf
+           with Found(pathlist) -> raise (Found (e::pathlist))
+         end
   in
   try
-    find t (fun x -> raise (Found x)) (fun y -> y)
-  with Found(x) -> raise (Found x)
+    find t (fun x -> raise (Found [x])) (fun y -> y); None
+  with Found(path) -> Some path
+                                      
+(* let ctree = Node (2, Node (5, Leaf, Leaf), Node(3, Leaf, Node(4, Leaf, Leaf))) *)
+(* let etree = Node (3, Node(4, Leaf, Leaf), Leaf)                              *)
+let print_path a t =
+  let res = double_barrel_cps_find a t in
+  match res with
+  |None -> printf "\nNo path found\n"
+  |Some(a) -> printf "\n[ " ;
+              List.iter (fun x -> print_int x; printf " ") a;
+              printf "]\n"
 
-let ctree = Node (2, Node (5, Leaf, Leaf), Node (3, Leaf, Node(4, Leaf, Leaf)))
-let () = double_barrel_cps_find 4 ctree
+                     
+let buildtree n =
+  let () = Random.self_init () in
+  let rec aux acc n =
+    if n > 0 then Node(Random.int n, aux acc (n-1), aux acc (n-1))
+    else acc
+  in aux Leaf n
+    
+let e = buildtree 24
+
+let _ = print_path 4 e
