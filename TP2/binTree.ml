@@ -1,3 +1,5 @@
+open Printf
+  
 exception Element_Found
 type 'a tree =
   | Leaf
@@ -44,27 +46,16 @@ let cps_dfs (t: int tree) : unit =
 (* Question 2 : *)
 (* Ici jouer avec des listes n'est peut etre pas la meilleure solution *)
 (* Envisager de jouer peut-etre directement avec les trees *)
-(* let cps_print_before (e: int) (t: int tree) = *)
-(*   let rec cps_print_aux (t: 'a tree) (k1: 'a -> unit) (k2: 'a -> unit) = *)
-(*     match t with *)
-(*     | Leaf -> k1 0 (\* Printf.printf "Missed " *\)  *)
-(*     | Node(a, t, u) -> (\* Printf.printf "A value %d, " a; *\) *)
-(*        cps_print_aux t (fun prntT -> cps_print_aux u (fun prntU -> if e <> a then k1 a else k2 a) (fun x -> ())) (fun noExectpion -> ()) *)
-(*  in *)
-(*  cps_print_aux t print_int (fun x -> raise Element_Found) *)
-
-let cps_print_before_One_k (e: string) (t: string tree) =
-  let rec cps_print_aux (t: 'a tree) (k1: 'a -> 'b) : 'b =
+let cps_print_before (e: int) (t: int tree) =
+  let rec cps_print_aux (t: 'a tree) (k1: 'a -> unit) (k2: 'a -> unit) =
     match t with
-    | Leaf -> ()
-    | Node(a, t, u) ->
-       if a = e
-       then raise Element_Found else
-         begin
-           cps_print_aux u (fun at -> cps_print_aux t (fun ut -> k1 ut); k1 at); k1 a
-         end
-  in
-  cps_print_aux t print_string
+    | Leaf -> k1 0 (* Printf.printf "Missed " *)
+    | Node(a, t, u) -> (* Printf.printf "A value %d, " a; *)
+       cps_print_aux t (fun prntT -> cps_print_aux u (fun prntU -> if e <> a then k1 a else k2 a) (fun x -> ())) (fun noExectpion -> ())
+ in
+ cps_print_aux t print_int (fun x -> raise Element_Found)
+
+
 
 (* Deux continuation ici : soit on est différent de a alors on print
 Des qu'uon est égal à a : on fait la continuation qui try with : StopIteration *)
@@ -96,13 +87,15 @@ let find a t =
 let double_barrel_cps_find a t =
   let rec find t kf knf =
     match t with
-    | Leaf -> knf (); print_int 0 (*  Soit je renvoi unit, soit je renvoi continuation ( qui fera unit).. à voir *)
-    | Node(e, g, d) ->
-       find d (fun glist -> if e = a then raise (Found glist) else try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf; kf []; print_int e
+    | Leaf -> (); printf " Leaf "
+    | Node(e, Leaf, Leaf) -> if e = a then raise (Found [e]) else knf ()
+    | Node(e, g, d) -> printf " Parent Node %d " e;
+  (* find d (fun glist -> try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf *)
+      find d (fun glist -> try find g kf knf with Found(pathlist) -> raise (Found(e::pathlist))) knf
   in
   try
     find t (fun x -> raise (Found x)) (fun y -> y)
-  with Found(path) -> raise (Found path)
+  with Found(x) -> raise (Found x)
 
-let ctree = Node (2, Node (5, Leaf, Leaf), Node (3, Leaf, Node(4,Leaf, Leaf)))
+let ctree = Node (2, Node (5, Leaf, Leaf), Node (3, Leaf, Node(4, Leaf, Leaf)))
 let () = double_barrel_cps_find 4 ctree
