@@ -28,22 +28,22 @@ let find a t =
    return: int list option
 
 *)
-let double_barrel_cps_find_incon a t =
-  let rec find t kf knf =
-    match t with
-    | Leaf -> printf "Leaf\n"; knf a
-    | Node(e, g, d) ->
-       if e = a then
-         begin printf "Node %d\n" e; kf e end
-       else
-         begin
-           try  printf "Node %d\n" e; find g kf knf; find d kf knf
-           with Found(pathlist) -> raise (Found (e::pathlist))
-         end
-  in
-  try
-    find t (fun x -> raise (Found [x])) (fun y -> ()); None
-  with Found(path) -> Some path
+(* let double_barrel_cps_find_incon a t = *)
+(*   let rec find t kf knf = *)
+(*     match t with *)
+(*     | Leaf -> printf "Leaf\n"; knf a *)
+(*     | Node(e, g, d) -> *)
+(*        if e = a then *)
+(*          begin printf "Node %d\n" e; kf e end *)
+(*        else *)
+(*          begin *)
+(*            try  printf "Node %d\n" e; find g kf knf; find d kf knf *)
+(*            with Found(pathlist) -> raise (Found (e::pathlist)) *)
+(*          end *)
+(*   in *)
+(*   try *)
+(*     find t (fun x -> raise (Found [x])) (fun y -> ()); None *)
+(*   with Found(path) -> Some path *)
 
 (* Un continuation peut en avoir une autre en paramètre ? Si oui alors knf *)
 let double_barrel_cps_find a t =
