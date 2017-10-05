@@ -80,4 +80,4 @@ let buildtree n =
     else acc
   in aux Leaf n
 
-let _ = double_barrel_cps_find 4 etree
+let _ = double_barrel_cps_find 4 (buildtree 20)
