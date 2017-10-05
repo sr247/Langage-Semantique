@@ -1,5 +1,4 @@
 open Printf
-
 exception Element_Found
 type 'a tree =
   | Leaf
