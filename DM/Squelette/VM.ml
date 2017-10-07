@@ -3,7 +3,7 @@ module IS = InstructionSet
 
 type value =
   | Int of int
-      
+             
 module Env = Map.Make(String)
 type env = value Env.t
 
@@ -14,7 +14,7 @@ type env = value Env.t
   stack : value list;
   env   : env
   }
-*)
+ *)
 
 type thread_state = {
   mutable code  : IS.block;
@@ -31,7 +31,7 @@ let step state =
        raise (End_of_thread state)
     | i::c ->
        state.code <- c;
-      i
+       i
   in
   let push v =
     state.stack <- v::state.stack
@@ -41,7 +41,7 @@ let step state =
     | [] -> assert false
     | v::s ->
        state.stack <- s;
-      v
+       v
   in
   match fetch() with
   (* Fragment A *)
@@ -71,16 +71,11 @@ let execute p : unit =
   let b = {code=p; stack=[]; env=Env.empty }
   in 
   let rec exec state =
+
     step state; exec state
   in
   try
     exec b
   with End_of_thread(state) ->
-    match state.stack with
-    | Int(n)::s -> printf "%d\n" n
-       
-       
-       
-(* 
-
-*)
+       match state.stack with
+       | Int(n)::s -> printf "%d\n" n
