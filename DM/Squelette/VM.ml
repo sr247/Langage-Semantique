@@ -3,6 +3,7 @@ module IS = InstructionSet
 
 type value =
   | Int of int
+  | Closure of string * value * env
              
 module Env = Map.Make(String)
 type env = value Env.t
@@ -23,7 +24,8 @@ type thread_state = {
 }
 
 exception End_of_thread of thread_state
-exception NF_Env of string
+exception Not_found_in_Env of string
+                      
 let step state =
   let fetch() =
     match state.code with
@@ -40,8 +42,7 @@ let step state =
     match state.stack with
     | [] -> assert false
     | v::s ->
-       state.stack <- s;
-       v
+       state.stack <- s; v
   in
   match fetch() with
   (* Fragment A *)
@@ -51,20 +52,29 @@ let step state =
      let v =
        try
 	 Env.find id state.env
-       with Not_found -> raise (NF_Env id)
+       with Not_found -> raise (Not_found_in_Env id)
      in
      push v
   | IS.Add ->
      let Int n1 = pop () in
      let Int n2 = pop () in
      push(Int(n1+n2))
+  | IS.Sub ->
+     let Int n1 = pop() in
+     let Int n2 = pop() in
+     push(Int(n1-n2))
+  | IS.Mult ->
+     let Int n1 = pop() in
+     let Int n2 = pop() in
+     push(Int(n1*n2))
   | IS.Let(id) ->
      let v = pop () in
      state.env <- (Env.add id v state.env)
   | IS.EndLet(id) ->
      state.env <- (Env.remove id state.env)
   (* Fragment F *)
-  | IS.MkClos(id, c) -> ()
+  | IS.MkClos(id, c) -> push c
+     
   | _ -> failwith "Not implemented"
 (*  *)
 let execute p : unit =
