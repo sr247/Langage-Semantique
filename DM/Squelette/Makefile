@@ -6,7 +6,7 @@ OCB = ocamlbuild $(OCB_FLAGS)
 all: native
 
 clean:
-	$(OCB) -clean
+	rm -RIvfd --one-file-system --preserve-root _build/ VM
 
 native:
 	$(OCB) Main.native

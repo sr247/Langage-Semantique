@@ -7,59 +7,47 @@ let rec compile_expr = function
   | Ast.Ident(id) ->
      [IS.Lookup(id)]
 
-  | Ast.Binop(Ast.Add, e1, e2) ->
+  | Ast.Binop(op, e1, e2) ->
+     let isop = 
+       match op with
+       | Ast.Add -> IS.Add
+       | Ast.Sub -> IS.Sub
+       | Ast.Mult -> IS.Mult
      (* D'abord un opérande, puis
 	l'autre, puis l'opérateur,
 	comme en notation
 	polonaise inversée. *)
+     in
      (compile_expr e2)
      @ (compile_expr e1)
-     @ [IS.Add]
-  | Ast.Binop(Ast.Mult, e1, e2) ->
-     (* D'abord un opérande, puis
-	l'autre, puis l'opérateur,
-	comme en notation
-	polonaise inversée. *)
-     (compile_expr e2)
-     @ (compile_expr e1)
-     @ [IS.Mult]
-  | Ast.Binop(Ast.Sub, e1, e2) ->
-     (* D'abord un opérande, puis
-	l'autre, puis l'opérateur,
-	comme en notation
-	polonaise inversée. *)
-     (compile_expr e2)
-     @ (compile_expr e1)
-     @ [IS.Sub]
-         
+     @ [IS.Binop(isop)]
+       
   | Ast.Letin(id, e1, e2) ->
      (compile_expr e1)
      @ [IS.Let(id)]
      @ (compile_expr e2)
-         
-  (** expl :let x = 4 in x + 2
-         
-   @ [Int   (4)]
-   @ [Let("x")]
-   @ [Binop(Add, Ident("x"), Int(2))]
-   @ [Lookup("x")] 
-   
-   **)
-         
+       
+       (** expl :let x = 4 in x + 2
+	   
+	   @ [Int   (4)]
+	   @ [Let("x")]
+	   @ [Binop(Add, Ident("x"), Int(2))]
+	   @ [Lookup("x")] 
+	   
+       **)
+       
   | Ast.Fun(id, c) ->
      let c' = compile_expr c in
      [IS.MkClos(id, c'@[IS.Return])]
        
-  | Ast.Apply(t, e) ->
-     let c' = compile_expr e in
-     [compile_expr e]
-     @ [IS.Apply]
-  (** expl: f e
+  (* | Ast.Apply(t, e) -> *)
+  (*    let c' = compile_expr e in *)
+  (*    [compile_expr e] *)
+  (*    @ [IS.Apply *)
 
-  compile_expr e
-  @ compile_expr f
+  (** expl: f e compile_expr e @ compile_expr f
 
-   *)
+  *)
   | _ -> failwith "Not implemented"
   
 

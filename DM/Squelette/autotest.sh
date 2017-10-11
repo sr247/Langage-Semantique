@@ -1,4 +1,5 @@
 # !/bin/bash
+make -k
 for f in $(ls test/)
 do
 	echo "$f : "

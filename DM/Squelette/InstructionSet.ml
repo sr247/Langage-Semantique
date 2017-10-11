@@ -2,7 +2,7 @@ type instruction =
   (* Fragment A*)
   | Int of int
   | Lookup of string
-  | Add | Sub | Mult
+  | Binop of binop
   | Let of string
   | EndLet of string
 (* Fragment F*)
@@ -10,3 +10,4 @@ type instruction =
   | Return
   | Apply
 and block = instruction list
+and binop = Add | Sub | Mult

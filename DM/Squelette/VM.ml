@@ -3,7 +3,7 @@ module IS = InstructionSet
 
 type value =
   | Int of int
-  | Closure of string * value * env
+  | Closure of string * IS.block
              
 module Env = Map.Make(String)
 type env = value Env.t
@@ -33,7 +33,7 @@ let step state =
        raise (End_of_thread state)
     | i::c ->
        state.code <- c;
-       i
+      i
   in
   let push v =
     state.stack <- v::state.stack
@@ -55,25 +55,29 @@ let step state =
        with Not_found -> raise (Not_found_in_Env id)
      in
      push v
-  | IS.Add ->
-     let Int n1 = pop () in
-     let Int n2 = pop () in
-     push(Int(n1+n2))
-  | IS.Sub ->
-     let Int n1 = pop() in
-     let Int n2 = pop() in
-     push(Int(n1-n2))
-  | IS.Mult ->
-     let Int n1 = pop() in
-     let Int n2 = pop() in
-     push(Int(n1*n2))
+  | IS.Binop(op) ->
+     begin
+       match op with       
+       | IS.Add ->
+	  let Int n1 = pop () in
+	  let Int n2 = pop () in
+	  push(Int(n1+n2))
+       | IS.Sub ->
+	  let Int n1 = pop() in
+	  let Int n2 = pop() in
+	  push(Int(n1-n2))
+       | IS.Mult ->
+	  let Int n1 = pop() in
+	  let Int n2 = pop() in
+	  push(Int(n1*n2))
+     end
   | IS.Let(id) ->
      let v = pop () in
      state.env <- (Env.add id v state.env)
   | IS.EndLet(id) ->
      state.env <- (Env.remove id state.env)
-  (* Fragment F *)
-  | IS.MkClos(id, c) -> push c
+     (* Fragment F *)
+  | IS.MkClos(id, c') -> push (Closure(id, c'))
      
   | _ -> failwith "Not implemented"
 (*  *)
@@ -87,5 +91,23 @@ let execute p : unit =
   try
     exec b
   with End_of_thread(state) ->
-       match state.stack with
-       | Int(n)::s -> printf "%d\n" n
+    match state.stack with
+    | Int(n)::s -> printf "%d\n" n
+    | Closure(id, c)::s ->
+       printf "(%s : fun -> " id;
+      List.iter (fun inst ->
+    	match inst with
+    	| IS.Int(i) -> print_int i
+    	| IS.Lookup(id) -> printf "%s " id
+    	| IS.Binop(op) ->
+    	   begin
+    	     match op with
+    	     | IS.Add -> printf "+ "
+    	     | IS.Sub -> printf "- "
+    	     | IS.Mult -> printf "* "
+    	   end
+    	| IS.Let (id) -> printf "%s " id
+	| _ -> ()
+      ) c;
+      printf ")\n"
+	 
