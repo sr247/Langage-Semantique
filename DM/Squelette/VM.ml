@@ -15,7 +15,7 @@ type env = value Env.t
   stack : value list;
   env   : env
   }
- *)
+*)
 
 type thread_state = {
   mutable code  : IS.block;
@@ -76,16 +76,61 @@ let step state =
      state.env <- (Env.add id v state.env)
   | IS.EndLet(id) ->
      state.env <- (Env.remove id state.env)
-     (* Fragment F *)
-  | IS.MkClos(id, c') -> push (Closure(id, c'))
-     
+  (* Fragment F *)
+  | IS.MkClos(id, c') ->
+     let clos = Closure(id, c') in
+     state.env <- (Env.add id clos state.env);
+       push (clos)
+  | IS.Apply ->
+     let Closure(id, c') = pop () in
+     let f =
+       try
+	 Env.find id state.env
+       with Not_found -> raise (Not_found_in_Env id)
+     in
+     state.code <- c'@state.code
+       
   | _ -> failwith "Not implemented"
-(*  *)
+
+(**
+   A function which print recursively all the element 
+   contained in a Closure term.
+*)
+let rec print_clos id c = 
+  printf "(%s : fun -> " id;
+  List.iter (fun inst ->
+    match inst with
+    | IS.Int(i) -> print_int i
+    | IS.Lookup(id) -> printf " %s " id
+    | IS.Binop(op) ->
+       begin
+    	 match op with
+    	 | IS.Add -> printf " + "
+    	 | IS.Sub -> printf " - "
+    	 | IS.Mult -> printf " * "
+       end
+    | IS.Let (id) -> printf " %s " id
+    | IS.MkClos(id, c) -> print_clos id c; printf ")"; 
+    | _ -> ()
+  ) c
+
+(**
+   A fonction which executes the list code "p" retreived from
+   the compiling pass and then initiates a "b" state in which:
+
+   b.code = the p list instruction
+   b.stack = the stack execution initiate at empty
+   b.env = the environment initiate at empty
+   
+   The function executes instructions by instructions 
+   the b.code (using step function) and changes the 
+   state of b.stack and the environment.
+   
+*)
 let execute p : unit =
   let b = {code=p; stack=[]; env=Env.empty }
   in 
   let rec exec state =
-
     step state; exec state
   in
   try
@@ -93,21 +138,7 @@ let execute p : unit =
   with End_of_thread(state) ->
     match state.stack with
     | Int(n)::s -> printf "%d\n" n
-    | Closure(id, c)::s ->
-       printf "(%s : fun -> " id;
-      List.iter (fun inst ->
-    	match inst with
-    	| IS.Int(i) -> print_int i
-    	| IS.Lookup(id) -> printf "%s " id
-    	| IS.Binop(op) ->
-    	   begin
-    	     match op with
-    	     | IS.Add -> printf "+ "
-    	     | IS.Sub -> printf "- "
-    	     | IS.Mult -> printf "* "
-    	   end
-    	| IS.Let (id) -> printf "%s " id
-	| _ -> ()
-      ) c;
+    | Closure(id, c)::s -> print_clos id c;
       printf ")\n"
 	 
+

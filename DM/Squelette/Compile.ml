@@ -25,8 +25,7 @@ let rec compile_expr = function
   | Ast.Letin(id, e1, e2) ->
      (compile_expr e1)
      @ [IS.Let(id)]
-     @ (compile_expr e2)
-       
+     @ (compile_expr e2)       
        (** expl :let x = 4 in x + 2
 	   
 	   @ [Int   (4)]
@@ -40,14 +39,6 @@ let rec compile_expr = function
      let c' = compile_expr c in
      [IS.MkClos(id, c'@[IS.Return])]
        
-  (* | Ast.Apply(t, e) -> *)
-  (*    let c' = compile_expr e in *)
-  (*    [compile_expr e] *)
-  (*    @ [IS.Apply *)
-
-  (** expl: f e compile_expr e @ compile_expr f
-
-  *)
   | _ -> failwith "Not implemented"
   
 
