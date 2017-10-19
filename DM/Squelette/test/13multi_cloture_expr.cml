@@ -1,1 +1,1 @@
-fun ff -> fun f -> let x = 13 in x
+fun x -> fun y -> let z = 13 in x + y + z

@@ -1,1 +1,1 @@
-fun victoire -> let x = 2 in x + 10
+fun x -> let y = 1 in y + 10 + x

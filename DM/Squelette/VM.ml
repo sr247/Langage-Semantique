@@ -78,17 +78,11 @@ let step state =
      state.env <- (Env.remove id state.env)
   (* Fragment F *)
   | IS.MkClos(id, c') ->
-     let clos = Closure(id, c') in
-     state.env <- (Env.add id clos state.env);
-       push (clos)
+     let v = Closure(id, c') in
+     push(v)
   | IS.Apply ->
      let Closure(id, c') = pop () in
-     let f =
-       try
-	 Env.find id state.env
-       with Not_found -> raise (Not_found_in_Env id)
-     in
-     state.code <- c'@state.code
+     step c'
        
   | _ -> failwith "Not implemented"
 
