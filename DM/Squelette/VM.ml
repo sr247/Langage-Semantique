@@ -81,9 +81,17 @@ let step state =
      let v = Closure(id, c') in
      push(v)
   | IS.Apply ->
-     let Closure(id, c') = pop () in
-     step c'
-       
+     let Closure(id, c') = pop() in
+     (* Ici je devrait éventuellement matcher le pop...*)
+     (* A suivre *)
+     let s, e =
+       [], (Env.add id (pop()) state.env) in
+     state.stack <- [Closure("main", state.code)]@state.stack;
+     state.code <-c';
+     state.env <- e       
+  | IS.Return ->
+     let v = pop() in
+     ()
   | _ -> failwith "Not implemented"
 
 (**
@@ -91,7 +99,7 @@ let step state =
    contained in a Closure term.
 *)
 let rec print_clos id c = 
-  printf "(%s : fun -> " id;
+  printf "(fun %s -> " id;
   List.iter (fun inst ->
     match inst with
     | IS.Int(i) -> print_int i
@@ -136,3 +144,6 @@ let execute p : unit =
       printf ")\n"
 	 
 
+
+
+	(* fun x -> x, (fun y -> 6*y) 3, let f = fun x -> 2*x in ()  *)

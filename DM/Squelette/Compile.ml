@@ -39,9 +39,9 @@ let rec compile_expr = function
      [IS.MkClos(id, c'@[IS.Return])]
 
   | Ast.Apply(e1, e2) ->
-     [compile_expr e2]
+     (compile_expr e2)
+     @ (compile_expr e1)
      @ [IS.Apply]
-     @ [compile_expr e1]
        
   | _ -> failwith "Not implemented"
   
