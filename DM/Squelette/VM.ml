@@ -80,7 +80,6 @@ let step state =
   | IS.MkClos(id, c') ->
      let v = Closure(id, c') in
      push(v)
-<<<<<<< Updated upstream
   | IS.Apply ->
      let Closure(id, c') = pop() in
      (* Ici je devrait éventuellement matcher le pop...*)
@@ -93,12 +92,6 @@ let step state =
   | IS.Return ->
      let v = pop() in
      ()
-=======
-  (* | IS.Apply -> *)
-  (*    let Closure(id, c') = pop () in *)
-  (*    step c' *)
-       
->>>>>>> Stashed changes
   | _ -> failwith "Not implemented"
 
 (**
