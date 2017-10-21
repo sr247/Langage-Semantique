@@ -40,13 +40,9 @@ let rec compile_expr = function
 
   | Ast.Apply(e1, e2) ->
      (compile_expr e2)
-<<<<<<< Updated upstream
      @ (compile_expr e1)
      @ [IS.Apply]
-=======
-     @ [IS.Apply]
-     @ (compile_expr e1)
->>>>>>> Stashed changes
+
        
   | _ -> failwith "Not implemented"
   
