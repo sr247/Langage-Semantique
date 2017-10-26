@@ -10,5 +10,9 @@ type instruction =
   | Return
   | Apply
 (* Fragment M *)
+  | Alloc
+  | Load
+  | Store
+  | Unit
 and block = instruction list
 and binop = Add | Sub | Mult

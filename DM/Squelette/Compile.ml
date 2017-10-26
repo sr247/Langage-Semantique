@@ -43,6 +43,14 @@ let rec compile_expr = function
      @ (compile_expr e1)
      @ [IS.Apply]
 
+  (* Fragment M *)
+  | Ast.Seq(e1, e2) ->
+     compile_expr e1
+     @compile_expr e2
+     @[IS.Unit]
+       
+  |Ast.Ref(e) ->
+     compile_expr e
        
   | _ -> failwith "Not implemented"
   

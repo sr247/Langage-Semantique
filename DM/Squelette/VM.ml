@@ -4,11 +4,9 @@ module IS = InstructionSet
 module Env = Map.Make(String)
 type env = value Env.t
 and value =
-    | Int of int
-    | Closure of string * IS.block * env
-
-
-
+  | Int of int
+  | Closure of string * IS.block * env
+  | Unit
 (* Ici, version immuable *)
 (*
   type thread_state = {
@@ -21,15 +19,17 @@ and value =
 type thread_state = {
   mutable code  : IS.block;
   mutable stack : value list;
-  mutable env   : env
-(* Ajout : list de thread + thread courant *)
+  mutable env   : env;
+    (* Ajout : list de thread + thread courant *)
+  mutable th : thread_state;
+  mutable thl: thread_state list; 
 }
-let heap = []
+let heap = Array.make 100 0
 (* L'état de la mémoire *)
   
 exception End_of_thread of thread_state
 exception Not_found_in_Env of string
-                      
+    
 let step state =
   let fetch() =
     match state.code with
@@ -94,9 +94,9 @@ let step state =
   | IS.Return ->
      let v = pop() in
      let Closure(id, c', e') = pop()
-       (* match pop() with *)
-       (* | Closure("main", c', e') as ret-> ret *)
-       (* | _ -> failwith "Closure Main Expected" *)
+     (* match pop() with *)
+     (* | Closure("main", c', e') as ret-> ret *)
+     (* | _ -> failwith "Closure Main Expected" *)
      in
      if id = "main" then
        begin
@@ -105,8 +105,9 @@ let step state =
 	 state.env <- (Env.remove id e')
        end
      else
-       failwith "not a return"
-       
+       failwith "not a return scheme"
+  | IS.Unit -> push Unit
+     
   | _ -> failwith "Not implemented"
 
 (**
@@ -131,6 +132,38 @@ let rec print_clos id c =
     | _ -> ()
   ) c
 
+(* let print_state state = *)
+(*   let rec print_code c = *)
+(*     let s = match c with *)
+(*       | IS.Int(n) ->  sprintf "%d" n *)
+(*       | IS.Lookup(id) -> sprintf "Lookup(%s)" id *)
+(*       | IS.Binop(op) -> *)
+(* 	 let s = match op with *)
+(* 	   | IS.Add -> "Add" *)
+(* 	   | IS.Mult -> "Mult" *)
+(* 	   | IS.Sub -> "Sub" *)
+(* 	 in *)
+(* 	 sprintf "%s" s *)
+(*       | IS.Let(id)       -> sprintf "Let(%s)" id *)
+(*       | IS.EndLet(id)    -> sprintf "EndLet(%s)" id *)
+(*       | IS.MkClos(id, c) -> *)
+(* 	 sprintf "MkClos(%s, %s)" id (List.fold_left print_code  c) *)
+(*       | IS.Return -> sprintf "Return" *)
+(*       | IS.Apply  -> sprintf "Apply" *)
+(*       | _ -> failwith"TODO" *)
+(*     in *)
+(*     s *)
+(*   in *)
+(*   let print_stack st = failwith "TODO stack" in *)
+(*   let print_env ev = failwith"TODO Env" in *)
+(* printf "\nAvancement dans le code:";     *)
+(* List.iter (fun ci  ->  printf "%s" (print_code ci)) state.code; *)
+(* printf "\nEtat de la pile:"; *)
+(* List.iter (fun si  ->  printf "%s" (print_stack si)) state.stack; *)
+(* printf "\nEvolution de l'environnement"; *)
+(* List.iter (fun evi ->  printf "%s" (print_env evi)) state.env *)
+    
+
 (**
    A fonction which executes the list code "p" retreived from
    the compiling pass and then initiates a "b" state in which:
@@ -145,8 +178,7 @@ let rec print_clos id c =
    
 *)
 let execute p : unit =
-  let b = {code=p; stack=[]; env=Env.empty }
-  in 
+  let b = {code=p; stack=[]; env=Env.empty;} in
   let rec exec state =
     step state; exec state
   in
@@ -157,43 +189,60 @@ let execute p : unit =
     | Int(n)::s -> printf "%d\n" n
     | Closure(id, c, _)::s -> print_clos id c;
       printf ")\n"
-	 
 
 
 
-	(* fun x -> x, (fun y -> 6*y) 3, let f = fun x -> 2*x in ()  *)
-
-	(** Quelques mots sur Spawn:
-	    rappel de yield : file contenant les threads
-	    Thread s'exécutant jusqu'à son instruction le mettant dans la file.
-	    
-	    Ici Chaque threads à son propre env et sa propre stack
-	    Mais ils partagent la meme mémoire heap.
-	    Ordonancer avec un aléatoire suffisement grand pour le nombre de pas de réduction (1-10)
-	    
-	    
-  *)
-	(** Typage des exceptions
-	    try e1 catch e2 = match ee1 with
-	    |E -> e2
-	    |V(v1) -> V(v1)
-
-	    dire qu'un terme est bien type -> E[Vide] |- e: T
-	    e a le type T dans l'environnemnt vide
-	    
-	    Alors [e] est bien typée -> Il existe T', E[Vide] |- [e] : T'
-	    T' est de la forme () + T
-	    
-	    Par récurrence sur la dérivation de typage
-	    Sauf qu'avec l'env Vide on ne peut pa généralisé alors
-	    On généralise avec Eta
-
-	    
 
 
 
-----------------------------------------------------
-[]	    
 
-	    
-	*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+(* while true do     *)
+(*     try *)
+(* 	step b *)
+(*     with End_of_thread(state) -> match state.stack with *)
+(*     | Int(n)::s -> printf "%d\n" n *)
+(*     | Closure(id, c, _)::s -> print_clos id c; *)
+(* 	printf ")\n" *)
+(* done *)
+	
+
+(** Quelques mots sur Spawn:
+    rappel de yield : file contenant les threads
+    Thread s'exécutant jusqu'à son instruction le mettant dans la file.
+    
+    Ici Chaque threads à son propre env et sa propre stack
+    Mais ils partagent la meme mémoire heap.
+    Ordonancer avec un aléatoire suffisement grand pour le nombre de pas de réduction (1-10)
+    
+    
+*)
+(** Typage des exceptions
+    try e1 catch e2 = match ee1 with
+    |E -> e2
+    |V(v1) -> V(v1)
+
+    dire qu'un terme est bien type -> E[Vide] |- e: T
+    e a le type T dans l'environnemnt vide
+    
+    Alors [e] est bien typée -> Il existe T', E[Vide] |- [e] : T'
+    T' est de la forme () + T
+    
+    Par récurrence sur la dérivation de typage
+    Sauf qu'avec l'env Vide on ne peut pa généralisé alors
+    On généralise avec Ete  
+*)
