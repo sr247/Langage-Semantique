@@ -1,1 +1,8 @@
 let f = fun x -> 2 * x in f 7
+
+(fun x -> x * 2) 7
+
+
+v::c[id, e'] popx2
+
+c[id, e']::v

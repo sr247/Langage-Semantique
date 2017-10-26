@@ -1,12 +1,13 @@
 open Printf
 module IS = InstructionSet
 
-type value =
-  | Int of int
-  | Closure of string * IS.block
-             
 module Env = Map.Make(String)
 type env = value Env.t
+and value =
+    | Int of int
+    | Closure of string * IS.block * env
+
+
 
 (* Ici, version immuable *)
 (*
@@ -21,8 +22,11 @@ type thread_state = {
   mutable code  : IS.block;
   mutable stack : value list;
   mutable env   : env
+(* Ajout : list de thread + thread courant *)
 }
-
+let heap = []
+(* L'état de la mémoire *)
+  
 exception End_of_thread of thread_state
 exception Not_found_in_Env of string
                       
@@ -73,25 +77,36 @@ let step state =
      end
   | IS.Let(id) ->
      let v = pop () in
-     state.env <- (Env.add id v state.env)
+     state.env <- (Env.add id v state.env)       
   | IS.EndLet(id) ->
      state.env <- (Env.remove id state.env)
+       
   (* Fragment F *)
   | IS.MkClos(id, c') ->
-     let v = Closure(id, c') in
+     let v = Closure(id, c', state.env) in
      push(v)
   | IS.Apply ->
-     let Closure(id, c') = pop() in
-     (* Ici je devrait éventuellement matcher le pop...*)
-     (* A suivre *)
-     let s, e =
-       [], (Env.add id (pop()) state.env) in
-     state.stack <- [Closure("main", state.code)]@state.stack;
-     state.code <-c';
-     state.env <- e       
+     let Closure(id, c', e') = pop() in
+     let v = pop() in
+     push (Closure("main", state.code, state.env));
+     state.code <- c';
+     state.env <- (Env.add id v e');
   | IS.Return ->
      let v = pop() in
-     ()
+     let Closure(id, c', e') = pop()
+       (* match pop() with *)
+       (* | Closure("main", c', e') as ret-> ret *)
+       (* | _ -> failwith "Closure Main Expected" *)
+     in
+     if id = "main" then
+       begin
+	 state.stack <- v::state.stack;
+	 state.code <- c';
+	 state.env <- (Env.remove id e')
+       end
+     else
+       failwith "not a return"
+       
   | _ -> failwith "Not implemented"
 
 (**
@@ -140,10 +155,45 @@ let execute p : unit =
   with End_of_thread(state) ->
     match state.stack with
     | Int(n)::s -> printf "%d\n" n
-    | Closure(id, c)::s -> print_clos id c;
+    | Closure(id, c, _)::s -> print_clos id c;
       printf ")\n"
 	 
 
 
 
 	(* fun x -> x, (fun y -> 6*y) 3, let f = fun x -> 2*x in ()  *)
+
+	(** Quelques mots sur Spawn:
+	    rappel de yield : file contenant les threads
+	    Thread s'exécutant jusqu'à son instruction le mettant dans la file.
+	    
+	    Ici Chaque threads à son propre env et sa propre stack
+	    Mais ils partagent la meme mémoire heap.
+	    Ordonancer avec un aléatoire suffisement grand pour le nombre de pas de réduction (1-10)
+	    
+	    
+  *)
+	(** Typage des exceptions
+	    try e1 catch e2 = match ee1 with
+	    |E -> e2
+	    |V(v1) -> V(v1)
+
+	    dire qu'un terme est bien type -> E[Vide] |- e: T
+	    e a le type T dans l'environnemnt vide
+	    
+	    Alors [e] est bien typée -> Il existe T', E[Vide] |- [e] : T'
+	    T' est de la forme () + T
+	    
+	    Par récurrence sur la dérivation de typage
+	    Sauf qu'avec l'env Vide on ne peut pa généralisé alors
+	    On généralise avec Eta
+
+	    
+
+
+
+----------------------------------------------------
+[]	    
+
+	    
+	*)

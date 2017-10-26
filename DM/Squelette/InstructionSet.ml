@@ -9,5 +9,6 @@ type instruction =
   | MkClos of string * block
   | Return
   | Apply
+(* Fragment M *)
 and block = instruction list
 and binop = Add | Sub | Mult
