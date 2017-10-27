@@ -1,12 +1,14 @@
 open Printf
 module IS = InstructionSet
-
+  
 module Env = Map.Make(String)
 type env = value Env.t
 and value =
   | Int of int
   | Closure of string * IS.block * env
   | Unit
+(*Nouvelle valeur : adresse of int : int estle numero de case memoire  *)
+
 (* Ici, version immuable *)
 (*
   type thread_state = {
