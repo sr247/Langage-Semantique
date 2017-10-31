@@ -1,0 +1,27 @@
+let f = (fun x -> x) in f;
+let g = (fun x -> if x then x else 0) in g;
+let h = (fun x -> while x do let x = x - 1 in x done) in h;
+spawn h 5; spawn g 1; spawn f 5
+
+
+
+(* 
+	[MkClos("x", [23][Lookup("x")][Add][Return])]
+	[Let("f")]
+	[Lookup("f")]
+	[Drop]
+	[Unit]
+	[3]
+	[Lookup("f")]
+	[Spawn]
+	[Drop]
+	[Unit]
+	[4]
+	[Lookup("f")]
+	[Spawn]
+	[Drop]
+	[Unit]
+	[5]
+	[Lookup("f")]
+	[Spawn]
+*)

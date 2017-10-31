@@ -1,0 +1,2 @@
+(let x = ref 10 in x <- 11; !x);
+let y = ref 12 in y <- 11; !x + !y

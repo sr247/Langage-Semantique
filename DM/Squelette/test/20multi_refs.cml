@@ -1,0 +1,6 @@
+ref 1;
+ref 3;  (*(fun y -> y * y + 1);*)
+ref 2;
+ref 4;
+ref 5; (* (fun x -> let y = x * x + 1 in y + 7); *)
+ref 6

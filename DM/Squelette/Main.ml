@@ -1,5 +1,8 @@
+let debug = ref true
+                
 let usage = "usage: ./VM file.cml"
-let spec  = []
+let spec  = [ "-d", Arg.Set debug, "  debug mode";
+              "--debug", Arg.Set debug, "   debug mode"; ]
   
 let file =
   let file = ref None in

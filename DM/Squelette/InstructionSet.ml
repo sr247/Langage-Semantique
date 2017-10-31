@@ -11,8 +11,15 @@ type instruction =
   | Apply
 (* Fragment M *)
   | Alloc
-  | Load
   | Store
+  | Load
+  | Dup
+  | Drop
   | Unit
+ (* Fragment C *)
+  | Spawn
+ (* Extention *)
+  | Cond of block * block
+  | Loop of block * block
 and block = instruction list
 and binop = Add | Sub | Mult

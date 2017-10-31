@@ -44,14 +44,44 @@ let rec compile_expr = function
      @ [IS.Apply]
 
   (* Fragment M *)
+  |Ast.Ref(e) ->
+    [IS.Alloc]
+    @[IS.Dup]
+    @compile_expr e
+    @[IS.Store]
+
+  |Ast.GetR(e) ->
+    compile_expr e
+    @[IS.Load]
+       
   | Ast.Seq(e1, e2) ->
      compile_expr e1
+     @[IS.Drop]
      @compile_expr e2
+                   
+  | Ast.SetR(d, e) ->
+     compile_expr d
+     @compile_expr e
+     @[IS.Store]
      @[IS.Unit]
-       
-  |Ast.Ref(e) ->
-     compile_expr e
-       
+        
+  (* Fragment C *)
+  | Ast.Spawn(e1, e2) ->
+     (compile_expr e2)
+     @(compile_expr e1)
+     @[IS.Spawn]        
+     @[IS.Unit]
+          
+  (* Extention *)
+  | Ast.Cond(c, e1, e2) ->
+     let cc = compile_expr c in
+     let ce1 = compile_expr e1 in
+     let ce2 = compile_expr e2 in
+     cc
+     @[IS.Cond(ce1,ce2)]
+  | Ast.Loop(c, e) ->
+     let cc = compile_expr c in
+     let ce = compile_expr e in
+     cc
+     @[IS.Loop(cc, ce)]
   | _ -> failwith "Not implemented"
-  
-
