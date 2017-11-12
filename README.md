@@ -8,8 +8,9 @@ Ce cours à pour but de mettre en relief défférente technique d'optimisation e
 ### Projet VM
 
 Pour lancer le projet utiliser la commande `make`:
+
     make
-    ./VM test/*
+    ./VM test/<somefile in here>
  
 Pour toutes aide supplémentaires: `./VM --help`
 Un script automatique est aussi disponible: `autotest.sh`
