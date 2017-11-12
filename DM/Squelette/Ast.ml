@@ -1,5 +1,7 @@
 type expr =
   | Int   of int
+  | Unop of unop * expr
+  | Bool  of bool
   | Ident of ident
   | Binop of binop * expr * expr
   | Letin of ident * expr * expr
@@ -12,5 +14,15 @@ type expr =
   | GetR  of expr
   | SetR  of expr * expr
   | Spawn of expr * expr
+  (* ---Ajout--- *)
+  | Show of expr list
+  | Wait                        
+  | Join
 and ident = string
 and binop = Add | Sub | Mult
+            (* ---Ajout--- *)
+            | Div
+            | Or | And
+            | Gt | Lt | Ge | Le
+            | Eq | Neq | Eqphy 
+and unop = Minus

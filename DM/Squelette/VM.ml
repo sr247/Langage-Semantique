@@ -1,25 +1,29 @@
 open Printf
 module IS = InstructionSet
-              
+
+let default_color = "\x1B[0m"
+let thread_color = "\x1B[38;5;63m"
+let code_color = "\x1B[0m"
+let heap_color = "\x1B[38;5;70m"
+let stack_color = "\x1B[38;5;208m"
+
+                    
 module Env = Map.Make(String)
 type env = value Env.t
  and value =
    | Int of int
+   | Bool of bool
    | Closure of string * IS.block * env
    | Unit
    | Addr of int
    (* Equivalent de NULL *)
    | Void
 
-(* Ici, version immuable *)
-(*
-  type thread_state = {
-  code  : block;
-  stack : value list;
-  env   : env
-  }
- *)
+type behavior = Wait
+              | Join
+              | Default
 
+                    
 type thread_state = {
   id            : int;
   mutable eta   : int;
@@ -35,6 +39,7 @@ type machine_state = {
   mutable output: string;
   mutable i: int;
   mutable pas: int;
+  mutable th_policy: behavior;
 }
                        
 (* L'état de la mémoire *)
@@ -45,7 +50,34 @@ exception Not_found_in_Env of string
 let debug = true
 let th_id = ref 1
 let seed = 123456789
-                
+
+
+(**
+   Fonction qui permet de mettre en forme les éléments
+   pour imprimer sur la sortie output.
+*)        
+let val_to_output n f =
+  let rec mk_print_list i acc =
+    if i = 0 then acc
+    else mk_print_list (i-1) (f()::acc)
+  in
+  let out = (mk_print_list n [])
+  in
+    String.concat ""
+      (List.map
+         (fun v ->
+          match v with
+          | Int(n)  -> sprintf " %d " n
+          | Bool(b) -> sprintf " %s " (string_of_bool b)
+          | Unit    -> sprintf " () "
+          | Addr(a) -> sprintf " &(%d) " a
+          (* Peut être on ne devrait pas pouvoir afficher directement une fonction *)
+          | Closure(id, c, _) -> sprintf "(fun %s -> c)" id
+         ) out)
+
+
+
+      
 let step state =
   let fetch() =
     match state.th.code with
@@ -65,8 +97,9 @@ let step state =
        state.th.stack <- s; v
   in
   (* Ici il s'agit d'une fonction de rezise du tas
-     lorsque sa taille devient insuffisante. On double
-     la taille *)
+     lorsque sa taille devient insuffisante; on double
+     la taille. Et on réécrit les précédentes valeurs
+     aux meme adresses *)
   let stretch () =
     let len = Array.length state.heap in
     let rec iter i acc =
@@ -83,6 +116,8 @@ let step state =
   (* Fragment A *)
   | IS.Int(n) ->
      push (Int n)
+  | IS.Bool(b) ->
+     push (Bool(b))
   | IS.Lookup(id) ->
      let v =
        try
@@ -105,6 +140,34 @@ let step state =
 	  let Int n1 = pop() in
 	  let Int n2 = pop() in
 	  push(Int(n1*n2))
+       | IS.Eq ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1=v2))
+       | IS.Neq ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1<>v2))
+       | IS.Eqphy ->
+          let Addr(i) = pop() in
+          let Addr(j) = pop() in
+          push(Bool(i=j))
+       | IS.Gt ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1>v2))
+       | IS.Ge ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1>=v2))
+       | IS.Lt ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1<v2))
+       | IS.Le ->
+          let v1 = pop() in
+          let v2 = pop() in
+          push(Bool(v1<=v2))
      end
   | IS.Let(id) ->
      let v = pop () in
@@ -137,10 +200,15 @@ let step state =
 
   (* Fragment M *)
   | IS.Unit -> push Unit
-
+                    
+  (* Ici petite optimisation supplémentaire:
+     si l'indice du pointeur sur la dernière cas alloué 
+     est supérieur à une certain fraction de la taille 
+     du tas, alors on "étire" le tas.
+   *)
   | IS.Alloc ->
      let Addr(i) = state.heap.(0) in
-     if (i+1) > 2*Array.length(state.heap)/3 then
+     if (i+1) > 9*Array.length(state.heap)/10 then
        state.heap <- stretch ()
      else
        ();
@@ -160,8 +228,7 @@ let step state =
        | Addr(i) -> push (state.heap.(i))
        | _ -> failwith "Not an address"
      end
-  |IS.Drop ->
-    let garb = pop () in ()
+  |IS.Drop -> ignore (pop ())
                            
   (* Frangment C *)
   | IS.Spawn ->
@@ -178,63 +245,74 @@ let step state =
        match pop() with
        | Int(0) -> e2
        | Int(_) -> e1
-       | _ -> failwith "Branch condition has to be Int(n)"
+       | _ -> failwith "Branch condition has to be Int(n)" (* Replace with Bool(b) *)
      in
      state.th.code <- branch@state.th.code
   | IS.Loop(c, b) ->
      let loop =
        match pop () with
        | Int(0) -> [IS.Unit]
-   
        | Int(_) -> b@[IS.Drop]@c@[IS.Loop(c, b)]
        | _ -> failwith "Loop condition has to be Int(n)"
      in
      state.th.code <- loop @ state.th.code
-  | _ -> failwith "Not implemented"
+  | IS.Show(n) ->
+     state.output <- val_to_output n pop;
+     printf "%s\n" state.output
+  | IS.Wait -> state.th_policy <- Wait
+  | IS.Join -> state.th_policy <- Join
+  | _ -> failwith "VM::step::Not implemented"
 
 (* **************************************** *)
 let rec print_clos id c = 
   printf "(fun %s -> " id;
-  List.iter (fun inst ->
-             match inst with
-             | IS.Int(i) -> print_int i
-             | IS.Lookup(id) -> printf " %s " id
-             | IS.Binop(op) ->
-                begin
-    	          match op with
-    	          | IS.Add -> printf " + "
-    	          | IS.Sub -> printf " - "
-    	          | IS.Mult -> printf " * "
-                end
-             | IS.Let (id) -> printf " %s " id
-             | IS.MkClos(id, c) -> print_clos id c; printf ")"; 
-             | _ -> ()
-            ) c
+  List.iter
+    (fun inst ->
+     match inst with
+     | IS.Int(i) -> print_int i
+     | IS.Bool(b) -> print_string (string_of_bool b)
+     | IS.Lookup(id) -> print_string id
+     | IS.Binop(op) ->
+        begin
+    	  match op with
+    	  | IS.Add -> printf " + "
+    	  | IS.Sub -> printf " - "
+    	  | IS.Mult -> printf " * "
+        end
+     | IS.Let (id) -> printf " %s " id
+     | IS.MkClos(id, c) -> print_clos id c; printf ")"; 
+     | _ -> ()
+    ) c
 
+(* Ici repose toutes les fonctions d'affichages
+   pour le débug.
+ *)
 let print_val = function
   | Int(n) -> printf "[ %d ]" n
+  | Bool(b) -> printf "[ %s ]" (string_of_bool b)
   | Closure(id, c, _) -> printf"[ "; print_clos id c; printf ") ]"
   | Unit -> printf "[ () ]"
   | Addr(i) -> printf "[ &%d ]" i
   | Void -> printf "[ Void ]"
-  | _ -> failwith"Unknown value for print_clos"
+  | _ -> failwith"VM::print_val::Unknown value"
                       
 let rec print_inst inst =
   let s =
     match inst with
     | IS.Int(n) ->  sprintf " [Int(%d)] " n
+    | IS.Bool(b) -> sprintf " [Bool(%s)] " (string_of_bool b)
     | IS.Lookup(id) -> sprintf " [Lookup(%s)] " id
     | IS.Binop(op) ->
        begin
          match op with
          | IS.Add  -> " [Add] "
-         | IS.Mult -> " [Mult] "
          | IS.Sub  -> " [Sub] "
+         | IS.Mult -> " [Mult] "
+         | IS.Div  -> " [Div] "
        end
     | IS.Let(id)       -> sprintf " [Let(%s)] " id
     | IS.EndLet(id)    -> sprintf " [EndLet(%s)] " id
-    | IS.MkClos(id, c) ->
-       sprintf " [MkClos(%s, _)] " id  (* (List.fold_left String.concat "" c) *)
+    | IS.MkClos(id, c) -> sprintf " [MkClos(%s, _)] " id  
     | IS.Return -> sprintf " [Return] "
     | IS.Apply  -> sprintf " [Apply] "
     | IS.Alloc  -> sprintf " [Alloc] "
@@ -245,8 +323,9 @@ let rec print_inst inst =
     | IS.Unit   -> sprintf " [Unit] "
     | IS.Spawn  -> sprintf " \x1B[38;5;196m[Spawn]\x1B[0m "
     | IS.Cond(e1, e2) -> sprintf " [Cond(e1, e2)] "
-    | IS.Loop(c, e) -> sprintf " [Loop(c, e)] "
-    | _ -> failwith"Unknown value for print_inst "
+    | IS.Loop(c, e)   -> sprintf " [Loop(c, e)] "
+    | IS.Show(len)    -> sprintf " [Show(%d)] " len
+    | _ -> failwith"VM::print_inst::Unknown value"
   in printf "%s" s
 
 (* ****************************************** *)
@@ -264,9 +343,14 @@ let rec print_inst inst =
    state of b.stack and the environment.
    Version itérative
  *)
-let execute p : unit =
+let execute (p: IS.instruction list) : unit =
   let t = {id=0; eta=0; code=p; stack=[]; env=Env.empty} in
-  let ms = {th=t; thl=Queue.create(); heap=[|Addr(1); Void; Void; Void |]; output=""; i=0; pas=1} in
+  let ms = {th=t;
+            thl=Queue.create();
+            heap=[|Addr(1); Void; Void; Void |];
+            output=""; i=0;
+            pas=1;
+            th_policy=Default} in
   let var = 5 in
   let () =
     (* Random.init seed; *)
@@ -277,17 +361,20 @@ let execute p : unit =
     while true do
       if debug then
         begin
-          printf "\x1B[38;5;63mThread %d Step %d:"
-                 state.th.id state.th.eta;
-          printf "\n\x1B[0mCode: ";
+          printf "---------------------------------------------------------------";
+          printf "\n%sThread %d Step %d:"
+                 thread_color state.th.id state.th.eta;
+          printf "\n%sCode: " code_color;
           List.iter print_inst state.th.code;
-          printf "\n\x1B[0m\x1B[38;5;208mStack: ";
+          printf "\n%s%sStack: "
+                 default_color stack_color;
           List.iter print_val state.th.stack;
-          printf "\n\x1B[38;5;70mHeap[%d]: [| "
+          printf "\n%sHeap[%d]: [| " heap_color
                  (Array.length state.heap);
           Array.iter print_val state.heap;
-          printf " |]\x1B[0m";
-          printf "\n\n";
+          printf " |]%s" default_color;
+          printf "\n---------------------------------------------------------------\n";
+          printf "\n";
         end
       else ();
       try
@@ -315,9 +402,23 @@ let execute p : unit =
         end
       with End_of_thread(thi) ->
            printf "\nEnd_of_thread %d\n" thi.id;
-           match Queue.is_empty state.thl with
-           | true  -> raise (End_of_machine(state))
-           | false -> state.th <- Queue.take state.thl
+           match state.th_policy with
+           | Wait ->
+              if thi.id = 0 then 
+                begin
+                  match Queue.is_empty state.thl with
+                  | true  -> raise (End_of_machine(state))
+                  | false ->
+                     Queue.add thi state.thl;
+                     state.th <- Queue.take state.thl
+               end
+           | Join -> ()
+           | Default ->
+              begin
+                match Queue.is_empty state.thl with
+                | true  -> raise (End_of_machine(state))
+                | false -> state.th <- Queue.take state.thl
+              end
     done
   in
   try
@@ -339,13 +440,15 @@ let execute p : unit =
        in
        match state.th.stack with
        | Int(n)::s -> printf "%d\n" n
+       | Bool(b)::s -> printf "%s\n" (string_of_bool b)
        | Closure(id, c, _)::s -> print_clos id c; printf ")\n"
        | Unit::s -> printf "()\n"
        | Addr(i)::s -> printf "&%d\n" i
        | Void::s -> printf "Void\n"
+       | _ -> failwith "VM::execute::Not implemented"
 
 
-                           (** Quelques mots sur Spawn:
+                       (** Quelques mots sur Spawn:
     rappel de yield : file contenant les threads
     Thread s'exécutant jusqu'à son instruction le mettant dans la file.
     
@@ -378,3 +481,19 @@ let execute p : unit =
 
 
     
+
+(* Fonction réserve *)
+
+(* Rétrécie le tas -> sorte de GC*)
+(* let shrink () = *)
+(*   let len = Array.length state.heap in *)
+(*   let rec iter i acc = *)
+(*     if i >= len then acc *)
+(*     else *)
+(*       begin *)
+(*         acc.(i) <- state.heap.(i); *)
+(*         iter(i+1) acc *)
+(*       end *)
+(*   in *)
+(*   iter 0 (Array.make (Array.length(state.heap)/2 + 1) (Void)) *)
+(*     in *)

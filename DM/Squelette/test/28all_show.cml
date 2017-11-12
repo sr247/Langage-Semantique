@@ -1,0 +1,9 @@
+let a = ref 8 in a;
+show 28, 29, (fun x -> x + 1)
+
+(* let res = ref 29;
+show 29;
+let x = let y = let z = 1 in 2 in 3 in show x, y, z
+*)
+
+

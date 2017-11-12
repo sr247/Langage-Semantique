@@ -16,6 +16,15 @@
 	"done", DONE;
 	"ref",  REF;
 	"spawn", SPAWN;
+        "true", BOOL(true);
+        "false", BOOL(false);
+        "show", SHOW;
+        "wait", WAIT;
+        "join", JOIN;
+        (* "try", TRY; *)
+        (* "catch", CATCH; *)
+        (* "match", MATCH; *)
+        (* "with", WITH;  *)       
       ] ;
     fun s ->
       try Hashtbl.find h s
@@ -24,21 +33,31 @@
 
 let digit = ['0'-'9']
 let alpha = ['a'-'z']
+let bigAlpha = ['A'-'Z']alpha*
   
 rule token = parse
   | ['\n' ' ' '\t' '\r']+  { token lexbuf      }
-  | digit+ { INT(int_of_string(lexeme lexbuf)) }
-  | alpha+ { id_or_keyword(lexeme lexbuf)      }
-  | "+"  { PLUS  }
-  | "-"  { MINUS }
-  | "*"  { STAR  }
-  | "("  { LP    }
-  | ")"  { RP    }
-  | "="  { EQ    }
-  | "->" { ARROW }
-  | ";"  { SEMI  }
-  | "!"  { BANG  }
-  | "<-" { SET   }
+  | digit+    { INT(int_of_string(lexeme lexbuf)) }
+  | alpha+    { id_or_keyword(lexeme lexbuf)      }
+  | bigAlpha  { id_or_keyword(lexeme lexbuf)      }
+  | "+"  { PLUS    }
+  | "-"  { MINUS   }
+  | "*"  { STAR    }
+  | "/"  { DIV     }
+  | "("  { LP      }
+  | ")"  { RP      }
+  | "="  { EQ      }
+  | "<>" { NEQ     }
+  | "==" { EQPHY   }
+  | ">"  { GT      }
+  | "<"  { LT      }
+  | ">=" { GE      }
+  | "<=" { LE      }
+  | "->" { ARROW   }
+  | ";"  { SEMI    }
+  | ","  { COMMA   }
+  | "!"  { BANG    }
+  | "<-" { SET     }
   | "(*" { comment lexbuf; token lexbuf }
   | _    { failwith ("Unknown character : " ^ (lexeme lexbuf)) }
   | eof  { EOF   }
