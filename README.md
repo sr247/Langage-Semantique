@@ -13,6 +13,7 @@ Pour lancer le projet utiliser la commande `make`:
     ./VM test/<somefile in here>
  
 Pour toutes aide supplémentaires: `./VM --help`
+
 Un script automatique est aussi disponible: `autotest.sh`
 Si vous êtes sur linux utiliser la commande <cmd> shell de de votre choix `sh` ou `bash` pour lancer le script:
 
