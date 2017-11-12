@@ -1,8 +1,8 @@
 type expr =
   | Int   of int
-  | Unop of unop * expr
   | Bool  of bool
   | Ident of ident
+  | Unop of unop * expr
   | Binop of binop * expr * expr
   | Letin of ident * expr * expr
   | Fun   of ident * expr
@@ -26,3 +26,12 @@ and binop = Add | Sub | Mult
             | Gt | Lt | Ge | Le
             | Eq | Neq | Eqphy 
 and unop = Minus
+         | Not
+
+
+
+type t = Tint
+       | Tbool
+       | Tident
+       | Tfun
+       | Tref

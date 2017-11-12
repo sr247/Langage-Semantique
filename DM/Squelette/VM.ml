@@ -7,7 +7,8 @@ let code_color = "\x1B[0m"
 let heap_color = "\x1B[38;5;70m"
 let stack_color = "\x1B[38;5;208m"
 
-                    
+
+                
 module Env = Map.Make(String)
 type env = value Env.t
  and value =
@@ -18,6 +19,9 @@ type env = value Env.t
    | Addr of int
    (* Equivalent de NULL *)
    | Void
+
+module Cas = Map.Make(struct type t = int let compare = compare end)
+type cas = value Cas.t
 
 type behavior = Wait
               | Join
@@ -30,6 +34,7 @@ type thread_state = {
   mutable code  : IS.block;
   mutable stack : value list;
   mutable env   : env;
+  mutable cs    : cas;
 }
 
 type machine_state = {
@@ -76,9 +81,25 @@ let val_to_output n f =
          ) out)
 
 
-
-      
+let compare_and_swap res i state =
+  let sv = Cas.find_opt i state.th.cs in
+  match sv with
+  | None -> state.th.cs <- Cas.add i res state.th.cs;
+            state.heap.(i) <- res
+  | Some(v) ->
+     if v = state.heap.(i) then state.heap.(i) <- res
+     else
+       printf " --------------------------------------------------------------------- ICI ---- La valeur a changé donc swap";
+       state.th.code <- [IS.Load]@[IS.Store]@state.th.code;
+     state.th.stack <- Addr(i)::[v]@[Addr(i)]@state.th.stack
+                                      
 let step state =
+  (* Mécanisme de Compare and Swap 
+   D'abors on save la valeur load dans un env spécial
+   (cs) avec retains *)
+  let retains i v =
+    state.th.cs <- Cas.add i v state.th.cs
+  in
   let fetch() =
     match state.th.code with
     | []   ->
@@ -210,8 +231,7 @@ let step state =
      let Addr(i) = state.heap.(0) in
      if (i+1) > 9*Array.length(state.heap)/10 then
        state.heap <- stretch ()
-     else
-       ();
+     else ();
      state.heap.(0) <- Addr(i+1);
      push (Addr(i))
   | IS.Dup ->
@@ -220,12 +240,14 @@ let step state =
   | IS.Store ->
      let v = pop() in
      let Addr(i) = pop() in
-     state.heap.(i) <- v;
+     compare_and_swap v i state
   | IS.Load ->
      let obj = pop () in
      begin
        match obj with
-       | Addr(i) -> push (state.heap.(i))
+       | Addr(i) ->
+          let v = state.heap.(i) in
+          push (v); retains i v
        | _ -> failwith "Not an address"
      end
   |IS.Drop -> ignore (pop ())
@@ -234,9 +256,8 @@ let step state =
   | IS.Spawn ->
      let Closure(id, c', e') = pop() in
      let v = pop () in
-     let th = {id=(!th_id); eta=0; code=c'; stack=[Closure("main", [], state.th.env)]; env=(Env.add id v e')} in
-     Queue.add state.th state.thl;
-     state.th <- th; 
+     let th = {id=(!th_id); eta=0; code=c'; stack=[Closure("main", [], state.th.env)]; env=(Env.add id v e'); cs=Cas.empty} in
+     Queue.add th state.thl;
      incr th_id;
      
   (* Extention *)
@@ -253,7 +274,7 @@ let step state =
        match pop () with
        | Int(0) -> [IS.Unit]
        | Int(_) -> b@[IS.Drop]@c@[IS.Loop(c, b)]
-       | _ -> failwith "Loop condition has to be Int(n)"
+       | _ -> failwith "Loop condition has to be Int(n)"  (* Replace with Bool(b) *)
      in
      state.th.code <- loop @ state.th.code
   | IS.Show(n) ->
@@ -344,7 +365,9 @@ let rec print_inst inst =
    Version itérative
  *)
 let execute (p: IS.instruction list) : unit =
-  let t = {id=0; eta=0; code=p; stack=[]; env=Env.empty} in
+  let t = {id=0; eta=0;
+           code=p; stack=[]; env=Env.empty;
+           cs=Cas.empty} in
   let ms = {th=t;
             thl=Queue.create();
             heap=[|Addr(1); Void; Void; Void |];
