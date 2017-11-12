@@ -8,14 +8,16 @@ Ce cours à pour but de mettre en relief défférente technique d'optimisation e
 ### Projet VM
 
 Pour lancer le projet utiliser la commande `make`:
-  make
-  ./VM test/*
+    make
+    ./VM test/*
  
-Pour toutes aide supplémentaires : `./VM --help`
+Pour toutes aide supplémentaires: `./VM --help`
 Un script automatique est aussi disponible: `autotest.sh`
 Si vous êtes sur linux utiliser la commande <cmd> shell de de votre choix `sh` ou `bash` pour lancer le script:
-  <cmd> autotest.sh
+
+    <cmd> autotest.sh
 
 ou changer les droit d'exécution du script en exécutable:
-  chmod 744 autotest.sh
-  ./autotest.sh
+
+    chmod 744 autotest.sh
+    ./autotest.sh
