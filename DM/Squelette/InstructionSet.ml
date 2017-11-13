@@ -13,6 +13,7 @@ type instruction =
 (* Fragment M *)
   | Alloc
   | Store
+  | StoreLock of block * block * right
   | Load
   | CompSwap
   | Dup
@@ -27,6 +28,7 @@ type instruction =
   | Wait
   | Join
 and block = instruction list
+and right = Free | Share | Lock
 and binop =  Add | Sub | Mult | Div
              | Or | And
              | Gt | Lt | Ge | Le

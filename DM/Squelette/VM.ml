@@ -2,30 +2,32 @@ open Printf
 module IS = InstructionSet
 
 let default_color = "\x1B[0m"
-let thread_color = "\x1B[38;5;63m"
-let code_color = "\x1B[0m"
-let heap_color = "\x1B[38;5;70m"
-let stack_color = "\x1B[38;5;208m"
+let thread_color = "\x1B[38;5;45m"
+let code_color = "\x1B[38;5;208m"
+let heap_color = "\x1B[38;5;177m"
+let stack_color = "\x1B[38;5;118m"
+let warn_color = "\x1B[38;5;226m"
+let error_color = "\x1B[38;5;9m"
 
 
-                
+  
 module Env = Map.Make(String)
 type env = value Env.t
- and value =
-   | Int of int
-   | Bool of bool
-   | Closure of string * IS.block * env
-   | Unit
-   | Addr of int
+and value =
+  | Int of int
+  | Bool of bool
+  | Closure of string * IS.block * env
+  | Unit
+  | Addr of int
    (* Equivalent de NULL *)
-   | Void
+  | Void
 
 module Cas = Map.Make(struct type t = int let compare = compare end)
 type cas = value Cas.t
 
 type behavior = Wait
-              | Join
-              | Default
+		| Join
+		| Default
 
                     
 type thread_state = {
@@ -46,12 +48,13 @@ type machine_state = {
   mutable pas: int;
   mutable th_policy: behavior;
 }
-                       
+  
 (* L'état de la mémoire *)
-                       
+  
 exception End_of_thread of thread_state
 exception End_of_machine of machine_state
 exception Not_found_in_Env of string
+    
 let debug = true
 let th_id = ref 1
 let seed = 123456789
@@ -68,35 +71,44 @@ let val_to_output n f =
   in
   let out = (mk_print_list n [])
   in
-    String.concat ""
-      (List.map
-         (fun v ->
-          match v with
-          | Int(n)  -> sprintf " %d " n
-          | Bool(b) -> sprintf " %s " (string_of_bool b)
-          | Unit    -> sprintf " () "
-          | Addr(a) -> sprintf " &(%d) " a
+  String.concat ""
+    (List.map
+       (fun v ->
+         match v with
+         | Int(n)  -> sprintf " %d " n
+         | Bool(b) -> sprintf " %s " (string_of_bool b)
+         | Unit    -> sprintf " () "
+         | Addr(a) -> sprintf " &(%d) " a
           (* Peut être on ne devrait pas pouvoir afficher directement une fonction *)
-          | Closure(id, c, _) -> sprintf "(fun %s -> c)" id
-         ) out)
-
+         | Closure(id, c, _) -> sprintf "(fun %s -> c)" id
+       ) out)
 
 let compare_and_swap res i state =
-  let sv = Cas.find_opt i state.th.cs in
+  let sv =
+    (* 
+       La fonction find_opt fait le mm job
+       sauf mais n'existe pas sur les 
+       anciennes  version non récent d'Ocaml.
+    *)
+    try Some(Cas.find i state.th.cs)
+    with Not_found -> None
+  in
   match sv with
   | None -> state.th.cs <- Cas.add i res state.th.cs;
-            state.heap.(i) <- res
+    state.heap.(i) <- res
   | Some(v) ->
      if v = state.heap.(i) then state.heap.(i) <- res
      else
-       printf " --------------------------------------------------------------------- ICI ---- La valeur a changé donc swap";
-       state.th.code <- [IS.Load]@[IS.Store]@state.th.code;
-     state.th.stack <- Addr(i)::[v]@[Addr(i)]@state.th.stack
-                                      
+       begin
+	 printf "%sLa valeur a changé donc swap%s\n" error_color default_color;
+	 state.th.code <- [IS.Load]@[IS.Drop]@[IS.Store]@state.th.code;
+	 state.th.stack <- [Addr(i)]@[v]@[Addr(i)]@state.th.stack
+       end
+         
 let step state =
   (* Mécanisme de Compare and Swap 
-   D'abors on save la valeur load dans un env spécial
-   (cs) avec retains *)
+     D'abors on save la valeur load dans un env spécial
+     (cs) avec retains *)
   let retains i v =
     state.th.cs <- Cas.add i v state.th.cs
   in
@@ -106,7 +118,7 @@ let step state =
        raise (End_of_thread state.th)
     | i::c ->
        state.th.code <- c;
-       i
+      i
   in
   let push v =
     state.th.stack <- v::state.th.stack
@@ -195,7 +207,7 @@ let step state =
      state.th.env <- (Env.add id v state.th.env)       
   | IS.EndLet(id) ->
      state.th.env <- (Env.remove id state.th.env)
-                       
+       
   (* Fragment F *)
   | IS.MkClos(id, c') ->
      let v = Closure(id, c', state.th.env) in
@@ -220,13 +232,12 @@ let step state =
        failwith "Not a correct return scheme"
 
   (* Fragment M *)
-  | IS.Unit -> push Unit
-                    
+  | IS.Unit -> push Unit     
   (* Ici petite optimisation supplémentaire:
      si l'indice du pointeur sur la dernière cas alloué 
      est supérieur à une certain fraction de la taille 
      du tas, alors on "étire" le tas.
-   *)
+  *)
   | IS.Alloc ->
      let Addr(i) = state.heap.(0) in
      if (i+1) > 9*Array.length(state.heap)/10 then
@@ -251,7 +262,7 @@ let step state =
        | _ -> failwith "Not an address"
      end
   |IS.Drop -> ignore (pop ())
-                           
+     
   (* Frangment C *)
   | IS.Spawn ->
      let Closure(id, c', e') = pop() in
@@ -279,7 +290,7 @@ let step state =
      state.th.code <- loop @ state.th.code
   | IS.Show(n) ->
      state.output <- val_to_output n pop;
-     printf "%s\n" state.output
+    printf "%s\n" state.output
   | IS.Wait -> state.th_policy <- Wait
   | IS.Join -> state.th_policy <- Join
   | _ -> failwith "VM::step::Not implemented"
@@ -289,25 +300,25 @@ let rec print_clos id c =
   printf "(fun %s -> " id;
   List.iter
     (fun inst ->
-     match inst with
-     | IS.Int(i) -> print_int i
-     | IS.Bool(b) -> print_string (string_of_bool b)
-     | IS.Lookup(id) -> print_string id
-     | IS.Binop(op) ->
-        begin
-    	  match op with
-    	  | IS.Add -> printf " + "
-    	  | IS.Sub -> printf " - "
-    	  | IS.Mult -> printf " * "
-        end
-     | IS.Let (id) -> printf " %s " id
-     | IS.MkClos(id, c) -> print_clos id c; printf ")"; 
-     | _ -> ()
+      match inst with
+      | IS.Int(i) -> print_int i
+      | IS.Bool(b) -> print_string (string_of_bool b)
+      | IS.Lookup(id) -> print_string id
+      | IS.Binop(op) ->
+         begin
+    	   match op with
+    	   | IS.Add -> printf " + "
+    	   | IS.Sub -> printf " - "
+    	   | IS.Mult -> printf " * "
+         end
+      | IS.Let (id) -> printf " %s " id
+      | IS.MkClos(id, c) -> print_clos id c; printf ")"; 
+      | _ -> ()
     ) c
 
 (* Ici repose toutes les fonctions d'affichages
    pour le débug.
- *)
+*)
 let print_val = function
   | Int(n) -> printf "[ %d ]" n
   | Bool(b) -> printf "[ %s ]" (string_of_bool b)
@@ -316,7 +327,7 @@ let print_val = function
   | Addr(i) -> printf "[ &%d ]" i
   | Void -> printf "[ Void ]"
   | _ -> failwith"VM::print_val::Unknown value"
-                      
+     
 let rec print_inst inst =
   let s =
     match inst with
@@ -342,7 +353,7 @@ let rec print_inst inst =
     | IS.Dup    -> sprintf " [Dup] "
     | IS.Drop   -> sprintf " [Drop] "
     | IS.Unit   -> sprintf " [Unit] "
-    | IS.Spawn  -> sprintf " \x1B[38;5;196m[Spawn]\x1B[0m "
+    | IS.Spawn  -> sprintf " %s[Spawn]%s" warn_color code_color
     | IS.Cond(e1, e2) -> sprintf " [Cond(e1, e2)] "
     | IS.Loop(c, e)   -> sprintf " [Loop(c, e)] "
     | IS.Show(len)    -> sprintf " [Show(%d)] " len
@@ -363,7 +374,7 @@ let rec print_inst inst =
    the b.code (using step function) and changes the 
    state of b.stack and the environment.
    Version itérative
- *)
+*)
 let execute (p: IS.instruction list) : unit =
   let t = {id=0; eta=0;
            code=p; stack=[]; env=Env.empty;
@@ -386,14 +397,14 @@ let execute (p: IS.instruction list) : unit =
         begin
           printf "---------------------------------------------------------------";
           printf "\n%sThread %d Step %d:"
-                 thread_color state.th.id state.th.eta;
+            thread_color state.th.id state.th.eta;
           printf "\n%sCode: " code_color;
           List.iter print_inst state.th.code;
           printf "\n%s%sStack: "
-                 default_color stack_color;
+            default_color stack_color;
           List.iter print_val state.th.stack;
           printf "\n%sHeap[%d]: [| " heap_color
-                 (Array.length state.heap);
+            (Array.length state.heap);
           Array.iter print_val state.heap;
           printf " |]%s" default_color;
           printf "\n---------------------------------------------------------------\n";
@@ -402,76 +413,76 @@ let execute (p: IS.instruction list) : unit =
       else ();
       try
         if Queue.length ms.thl = 0 then
-        begin
-          step state;
-          state.th.eta <- state.th.eta + 1
-        end
-      else
-        begin
-          if state.i < state.pas then
-            begin
-              step state;
-              state.th.eta <- state.th.eta + 1;
-              state.i <- state.i + 1
-            end
-          else
-            begin
-              let current = Queue.take state.thl in
-              Queue.add state.th state.thl;
-              state.th <- current;
-              state.i <- 0;
-              state.pas <- (Random.int var) + 1
-            end
-        end
-      with End_of_thread(thi) ->
-           printf "\nEnd_of_thread %d\n" thi.id;
-           match state.th_policy with
-           | Wait ->
-              if thi.id = 0 then 
-                begin
-                  match Queue.is_empty state.thl with
-                  | true  -> raise (End_of_machine(state))
-                  | false ->
-                     Queue.add thi state.thl;
-                     state.th <- Queue.take state.thl
-               end
-           | Join -> ()
-           | Default ->
+          begin
+            step state;
+            state.th.eta <- state.th.eta + 1
+          end
+	else
+          begin
+            if state.i < state.pas then
               begin
-                match Queue.is_empty state.thl with
-                | true  -> raise (End_of_machine(state))
-                | false -> state.th <- Queue.take state.thl
+		step state;
+		state.th.eta <- state.th.eta + 1;
+		state.i <- state.i + 1
               end
+            else
+              begin
+		let current = Queue.take state.thl in
+		Queue.add state.th state.thl;
+		state.th <- current;
+		state.i <- 0;
+		state.pas <- (Random.int var) + 1
+              end
+          end
+      with End_of_thread(thi) ->
+        printf "\nEnd_of_thread %d\n" thi.id;
+        match state.th_policy with
+        | Wait ->
+           if thi.id = 0 then 
+             begin
+               match Queue.is_empty state.thl with
+               | true  -> raise (End_of_machine(state))
+               | false ->
+                  Queue.add thi state.thl;
+                 state.th <- Queue.take state.thl
+             end
+        | Join -> ()
+        | Default ->
+           begin
+             match Queue.is_empty state.thl with
+             | true  -> raise (End_of_machine(state))
+             | false -> state.th <- Queue.take state.thl
+           end
     done
   in
   try
     exec ms
   with End_of_machine(state) -> 
-       let () =
-         if debug then
-           begin
-             printf "\nStack: "; List.iter print_val state.th.stack;
-             printf "\n";
-             printf "Heap[%d]: [| " (Array.length state.heap);
-             Array.iter print_val state.heap;
-             printf " |]";
-             printf "\n";
-           end
-         else
-           ();
-         printf"Return: "
-       in
-       match state.th.stack with
-       | Int(n)::s -> printf "%d\n" n
-       | Bool(b)::s -> printf "%s\n" (string_of_bool b)
-       | Closure(id, c, _)::s -> print_clos id c; printf ")\n"
-       | Unit::s -> printf "()\n"
-       | Addr(i)::s -> printf "&%d\n" i
-       | Void::s -> printf "Void\n"
-       | _ -> failwith "VM::execute::Not implemented"
+    let () =
+      if debug then
+        begin
+          printf "\nStack: "; List.iter print_val state.th.stack;
+          printf "\n";
+          printf "Heap[%d]: [| " (Array.length state.heap);
+          Array.iter print_val state.heap;
+          printf " |]";
+          printf "\n";
+        end
+      else
+        ();
+      printf"Return: "
+    in
+    match state.th.stack with
+    | Int(n)::s -> printf "%d\n" n
+    | Bool(b)::s -> printf "%s\n" (string_of_bool b)
+    | Closure(id, c, _)::s -> print_clos id c; printf ")\n"
+    | Unit::s -> printf "()\n"
+    | Addr(i)::s -> printf "&%d\n" i
+    | Void::s -> printf "Void\n"
+    | _ -> failwith "VM::execute::Not implemented"
 
 
-                       (** Quelques mots sur Spawn:
+(** Quelques mots sur Spawn:
     rappel de yield : file contenant les threads
     Thread s'exécutant jusqu'à son instruction le mettant dans la file.
     
@@ -480,8 +491,8 @@ let execute (p: IS.instruction list) : unit =
     Ordonancer avec un aléatoire suffisement grand pour le nombre de pas de réduction (1-10)
     
     
-                            *)
-                           (** Typage des exceptions
+*)
+(** Typage des exceptions
     try e1 catch e2 = match ee1 with
     |E -> e2
     |V(v1) -> V(v1)
@@ -495,15 +506,15 @@ let execute (p: IS.instruction list) : unit =
     Par récurrence sur la dérivation de typage
     Sauf qu'avec l'env Vide on ne peut pa généralisé alors
     On généralise avec Eta 
-                            *)
-                           
+*)
+       
 
 
 
 
 
 
-    
+       
 
 (* Fonction réserve *)
 

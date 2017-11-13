@@ -1,0 +1,10 @@
+let res = ref 0 in res;
+let f = (fun x -> while x do let x = x - 1 in res <- (!res) + 1 done) in f;
+spawn f 10; spawn f 10; spawn f 10; spawn f 10;
+spawn f 10; spawn f 10; spawn f 10; spawn f 10 
+
+
+
+(* let x = ref 5 in x;
+let f = (fun x -> x <- (!x) + 1) in f;  TYPAGE !x has to be (!x)
+spawn f x *)

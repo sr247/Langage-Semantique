@@ -63,6 +63,7 @@ rule token = parse
   | eof  { EOF   }
 
 and comment = parse
-  | "*)" { () }
-  | eof  { failwith "Open comment" }
-  | _    { comment lexbuf }
+    | "*)" { () }
+    | eof  { failwith "Open comment" }
+    | _    { comment lexbuf }
+	

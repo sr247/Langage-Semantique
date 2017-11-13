@@ -37,13 +37,6 @@ let rec compile_expr = function
      @ [IS.Let(id)]
      @ (compile_expr e2)
        
-  (** expl :let x = 4 in x + 2	   
-      @ [Int   (4)]
-      @ [Let("x")]
-      @ [Binop(Add, Ident("x"), Int(2))]
-      @ [Lookup("x")] 	   
-  **)
-       
   | Ast.Fun(id, c) ->
      let c' = compile_expr c in
      [IS.MkClos(id, c'@[IS.Return])]
@@ -71,7 +64,6 @@ let rec compile_expr = function
                    
   | Ast.SetR(d, e) ->
      (compile_expr d)
-     (* @[IS.CompSwap] *)
      @compile_expr e
      @[IS.Store]
      @[IS.Unit]
@@ -99,8 +91,10 @@ let rec compile_expr = function
         
   (* Le main attend la fin des autres thread*)
   | Ast.Wait ->
-     [IS.Wait]
+  (* [IS.Wait] *)
+     failwith "Compile::compile_expr::Not fonctional"
   (* Le main Wait + récupère les valeurs des threads *)
   | Ast.Join ->
-     [IS.Join]
+  (* [IS.Join] *)
+     failwith "Compile::compile_expr::Not fonctional"
   | _ -> failwith "Compile::compile_expr::Not implemented"
