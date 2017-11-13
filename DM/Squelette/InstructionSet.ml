@@ -13,7 +13,7 @@ type instruction =
 (* Fragment M *)
   | Alloc
   | Store
-  | StoreLock of block * block * right
+  | StoreLock  of block * block * right
   | Load
   | CompSwap
   | Dup
