@@ -2,4 +2,5 @@ let v = ref 10 in
 let res = ref 0 in 
 let f = (fun i -> while !i > 0 do res <- (!res) + 1; i <- !i - 1 done) in 
 spawn f v; spawn f v; spawn f v; spawn f v;
-spawn f v; spawn f v; spawn f v; spawn f v
+spawn f v; spawn f v; spawn f v; spawn f v;
+wait

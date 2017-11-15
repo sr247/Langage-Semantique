@@ -36,6 +36,7 @@ let rec compile_expr = function
      (compile_expr e1)
      @ [IS.Let(id)]
      @ (compile_expr e2)
+     @ [IS.EndLet(id)]
        
   | Ast.Fun(id, c) ->
      let c' = compile_expr c in
@@ -49,54 +50,53 @@ let rec compile_expr = function
   (* Fragment M *)
   | Ast.Ref(e) ->
      [IS.Alloc]
-     @[IS.Dup]
-     @compile_expr e
-     @[IS.Store]
+     @ [IS.Dup]
+     @ compile_expr e
+     @ [IS.Store]
 
   | Ast.GetR(e) ->
      compile_expr e
-     @[IS.Load]
+     @ [IS.Load]
        
   | Ast.Seq(e1, e2) ->
      compile_expr e1
-     @[IS.Drop]
-     @compile_expr e2
+     @ [IS.Drop]
+     @ compile_expr e2
        
   | Ast.SetR(d, e) ->
-     (compile_expr d)
-     @compile_expr e
-     @[IS.Store]
-     @[IS.Unit]
+     [IS.Atom]
+     @ (compile_expr d)
+     @ compile_expr e
+     @ [IS.Store]
+     @ [IS.Unit]
        
   (* Fragment C *)
   | Ast.Spawn(e1, e2) ->
      (compile_expr e2)
-     @(compile_expr e1)
-     @[IS.Spawn]
-     @[IS.Unit]
+     @ (compile_expr e1)
+     @ [IS.Spawn]
+     @ [IS.Unit]
        
   (* Extention *)
   | Ast.Cond(c, e1, e2) ->
      let cc = compile_expr c in
      let ce1 = compile_expr e1 in
      let ce2 = compile_expr e2 in
-     cc@[IS.Cond(ce1,ce2)]
+     cc @ [IS.Cond(ce1,ce2)]
        
   | Ast.Loop(c, e) ->
      let cc = compile_expr c in
      let ce = compile_expr e in
-     cc@[IS.Loop(cc, ce)]
+     cc @ [IS.Loop(cc, ce)]
        
   | Ast.Show(el) ->
      (List.flatten (List.map (fun e -> compile_expr e) el))
-     @[IS.Show(List.length el); IS.Unit]
+     @ [IS.Show(List.length el); IS.Unit]
        
   (* Le main attend la fin des autres thread*)
   | Ast.Wait ->
-     (* [IS.Wait] *)
-     failwith "Compile::compile_expr::Not fonctional"
+     [IS.Wait]
   (* Le main Wait + récupère les valeurs des threads *)
   | Ast.Join ->
-     (* [IS.Join] *)
-     failwith "Compile::compile_expr::Not fonctional"
+     [IS.Join]
   | _ -> failwith "Compile::compile_expr::Not implemented"

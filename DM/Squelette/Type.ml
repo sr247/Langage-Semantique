@@ -33,7 +33,7 @@ let mk_unop op e =
      | Not ->
         begin
           match ty with
-          | Tbool| Tident -> Unop(op, e)
+          | Tbool | Tident -> Unop(op, e)
           | _ -> failwith "Type::Expression has to be bool"
         end
      end
@@ -50,8 +50,7 @@ let mk_binop op e1 e2 =
          match t1, t2 with
          | Tint, Tint -> Binop(op, e1, e2)
          | _ ->
-            failwith "Type::Expression 
-                      has to be int -> int"
+            failwith "Type::Expression has to be int -> int"
        end
     | Or
     | And ->
@@ -59,8 +58,7 @@ let mk_binop op e1 e2 =
          match t1, t2 with
          | Tbool, Tbool -> Binop(op, e1, e2)
          | _ ->
-            failwith "Type::Expression 
-                      has to be bool -> bool"
+            failwith "Type::Expression has to be bool -> bool"
        end
     | Gt | Lt | Ge | Le
     | Eq | Neq
@@ -73,8 +71,7 @@ let mk_binop op e1 e2 =
          | _, _ ->
             (* Cas de l'égalité structurel 
              Eventuellement pour fun etc...*)
-            failwith "Type::Expression 
-                      has to be 'a -> 'a"
+            failwith "Type::Expression has to be 'a -> 'a"
        end
   end
 

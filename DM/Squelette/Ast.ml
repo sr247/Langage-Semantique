@@ -25,10 +25,9 @@ and binop = Add | Sub | Mult
             | Or | And
             | Gt | Lt | Ge | Le
             | Eq | Neq | Eqphy 
+
 and unop = Minus
          | Not
-
-
 
 type t = Tint
        | Tbool

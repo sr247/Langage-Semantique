@@ -1,1 +1,1 @@
-let x = ref 20 in x <- 21; !x
+let x = ref 20 in (x <- 21); !x

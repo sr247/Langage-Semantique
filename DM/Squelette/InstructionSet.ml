@@ -27,6 +27,7 @@ type t =
   | Show of int
   | Wait
   | Join
+  | Atom
 and block = t list
 and right = Free | Share | Lock
 and binop =  Add | Sub | Mult | Div
