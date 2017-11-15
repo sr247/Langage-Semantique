@@ -1,3 +1,4 @@
+open Options
 open Printf
 module IS = InstructionSet
 
@@ -12,7 +13,6 @@ let error_color = "\x1B[38;5;9m"
 
 
 (* Variable utilitaires *)
-let debug = ref false
 let th_id = ref 1
 let seed = 123456789
 
@@ -65,16 +65,25 @@ exception Not_found_in_Env of string
 let rec string_of_inst inst =
   let s =
     match inst with
-    | IS.Int(n) ->  sprintf " [Int(%d)] " n
-    | IS.Bool(b) -> sprintf " [Bool(%s)] " (string_of_bool b)
-    | IS.Lookup(id) -> sprintf " [Lookup(%s)] " id
+    | IS.Int(n) ->  sprintf "[Int(%d)]" n
+    | IS.Bool(b) -> sprintf "[Bool(%s)]" (string_of_bool b)
+    | IS.Lookup(id) -> sprintf "[Lookup(%s)]" id
     | IS.Binop(op) ->
        begin
          match op with
-         | IS.Add  -> " [Add] "
-         | IS.Sub  -> " [Sub] "
-         | IS.Mult -> " [Mult] "
-         | IS.Div  -> " [Div] "
+         | IS.Add  -> "[Add]"
+         | IS.Sub  -> "[Sub]"
+         | IS.Mult -> "[Mult]"
+         | IS.Div  -> "[Div]"
+         | IS.Or -> "[Or]"
+         | IS.And -> "[And]"
+         | IS.Gt -> "[Greater]"
+         | IS.Lt -> "[Less]"
+         | IS.Ge -> "[Gequal]"
+         | IS.Le -> "[Lequal]"
+         | IS.Eq -> "[Equal]"
+         | IS.Neq -> "[Not]"
+         | IS.Eqphy -> "[Phyqual]"
        end
     | IS.Let(id)       -> sprintf " [Let(%s)] " id
     | IS.EndLet(id)    -> sprintf " [EndLet(%s)] " id
@@ -93,7 +102,9 @@ let rec string_of_inst inst =
     | IS.Cond(e1, e2) -> sprintf " [Cond(e1, e2)] "
     | IS.Loop(c, e)   -> sprintf " [Loop(c, e)] "
     | IS.Show(len)    -> sprintf " [Show(%d)] " len
-    | _ -> failwith"VM::string_of_inst::Unknown value"
+    | IS.Wait         -> sprintf "[Wait]"
+    | IS.Join         -> sprintf "[Join]"
+    | _ -> failwith"VM::string_of_inst::Not implemented"
   in s
        
 (**
@@ -432,17 +443,23 @@ let execute (p: IS.t list) : unit =
       if !debug then
         begin
           printf "---------------------------------------------------------------";
+
           printf "\n%sThread %d Step %d:"
-            thread_color state.th.id state.th.eta;
-          printf "\n%sCode: " code_color;
+                 thread_color state.th.id state.th.eta;
+
+          if !showCode then printf "\n%sCode: " code_color;
           List.iter (print_'a string_of_inst) state.th.code;
-          printf "\n%s%sStack: "
+          if !showStack then printf "\n%s%sStack: "
             default_color stack_color;
           List.iter (print_'a string_of_val) state.th.stack;
-          printf "\n%sHeap[%d]: [| " heap_color
-            (Array.length state.heap);
-          Array.iter (print_'a string_of_val) state.heap;
-          printf " |]%s" default_color;
+          if !showHeap then
+            begin
+              printf "\n%sHeap[%d]: [| " heap_color
+                     (Array.length state.heap);
+              Array.iter (print_'a string_of_val) state.heap;
+              printf " |]%s" default_color;
+            end
+          else ();
           printf "\n---------------------------------------------------------------\n";
           printf "\n";
         end
