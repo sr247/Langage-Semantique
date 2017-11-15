@@ -6,7 +6,9 @@ let specs  = [ "-d", Arg.Tuple(allset), "     debug mode";
                "--debug", Arg.Tuple(allset),  " debug mode";
                "--code", Arg.Tuple([Arg.Set debug;Arg.Set showCode]), "   print only the list of instruction eaten by the virtual machine";
                "--stack", Arg.Tuple([Arg.Set debug;Arg.Set showStack]), "   print only the stack of threads managed by the virtual machine";
-               "--heap", Arg.Tuple([Arg.Set debug; Arg.Set showHeap]), "   print only the heap of the virtual machine"; ] 
+               "--heap", Arg.Tuple([Arg.Set debug; Arg.Set showHeap]), "   print only the heap of the virtual machine";
+	       "--caml", Arg.Set camlight, "   print only the heap of the virtual machine";
+	     ] 
                
 let alspecs = Arg.align specs
                         

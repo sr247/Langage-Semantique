@@ -359,15 +359,21 @@ let step state =
   | IS.Cond(e1, e2) ->
      let branch =
        match pop() with
-       | Int(0) -> e2
-       | Int(_) -> e1
-       | _ -> failwith "Branch condition has to be Int(n)" (* Replace with Bool(b) *)
+       | Bool(true) -> e1
+       | Bool(false) -> e1
+       | any -> if !camlike then
+	   failwith "Branch condition has to be Int(n)"
+	 else
+	   match any with
+	   | Int(0) -> e2
+	   | Int(_) -> e1
+	   | _ -> failwith "Branch condition has to be Int(n) or Bool(b)"
      in
-     state.th.code <- branch@state.th.code
+     state.th.code <- branch@state.th.code       
   | IS.Loop(c, b) ->
      let loop =
        match pop () with
-       | Int(0) -> [IS.Unit]
+       | Int(0) -> 
        | Int(_) -> b@[IS.Drop]@c@[IS.Loop(c, b)]
        | _ -> failwith "Loop condition has to be Int(n)"  (* Replace with Bool(b) *)
      in
