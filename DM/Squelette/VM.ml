@@ -176,8 +176,8 @@ let compare_and_swap res i state =
        end
 
 let delay state =    
-  state.th <- Queue.take state.thl;
   Queue.add state.th state.thl;
+  state.th <- Queue.take state.thl;
   state.i <- 0;
   state.pas <- (Random.int state.rd) + 1
                                    
