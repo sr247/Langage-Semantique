@@ -1,15 +1,20 @@
 ref 1;
-ref 3;  (*(fun y -> y * y + 1);*)
+ref 3;  
 ref 2;
 ref 4;
-ref 5; (* (fun x -> let y = x * x + 1 in y + 7); *)
+ref 5; 
 ref 6;
-ref 1;
-ref 3;  (*(fun y -> y * y + 1);*)
-ref 2;
-ref 4;
-ref 5; (* (fun x -> let y = x * x + 1 in y + 7); *)
-ref 6;
+ref 7;
+ref 8;  
+ref 9;
+ref 10;
+ref 11; 
+ref 12;
 ref (fun y -> y * y + 1);
 ref (fun x -> let y = x * x + 1 in y + 7);
-ref (fun x -> let y = ref 42 in !y)
+ref (fun x -> let y = ref 42 in !y);
+ref (fun x -> let y = x * x + 1 in y + 7);
+ref (fun y -> y * y + 1);
+ref (fun x -> let y = x * x + 1 in y + 7);
+ref (fun y -> y * y + 1);
+ref 20

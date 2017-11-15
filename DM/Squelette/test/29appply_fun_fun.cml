@@ -1,0 +1,4 @@
+let f = fun x -> x + 5 in f;
+let g = fun y -> y 5 in g;
+g f;
+f g

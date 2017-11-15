@@ -1,4 +1,4 @@
-type instruction =
+type t =
   (* Fragment A*)
   | Int of int
   | Bool of bool
@@ -27,7 +27,7 @@ type instruction =
   | Show of int
   | Wait
   | Join
-and block = instruction list
+and block = t list
 and right = Free | Share | Lock
 and binop =  Add | Sub | Mult | Div
              | Or | And
