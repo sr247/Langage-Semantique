@@ -1,1 +1,1 @@
- 28  29 (fun x -> c)
+ 28  29 (fun x -> [Int(1)] [Lookup(x)] [Add] [Return] )

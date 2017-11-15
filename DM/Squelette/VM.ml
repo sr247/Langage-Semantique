@@ -65,45 +65,45 @@ exception Not_found_in_Env of string
 let rec string_of_inst inst =
   let s =
     match inst with
-    | IS.Int(n) ->  sprintf "[Int(%d)]" n
-    | IS.Bool(b) -> sprintf "[Bool(%s)]" (string_of_bool b)
-    | IS.Lookup(id) -> sprintf "[Lookup(%s)]" id
+    | IS.Int(n) ->  sprintf "[Int(%d)] " n
+    | IS.Bool(b) -> sprintf "[Bool(%s)] " (string_of_bool b)
+    | IS.Lookup(id) -> sprintf "[Lookup(%s)] " id
     | IS.Binop(op) ->
        begin
          match op with
-         | IS.Add  -> "[Add]"
-         | IS.Sub  -> "[Sub]"
-         | IS.Mult -> "[Mult]"
-         | IS.Div  -> "[Div]"
-         | IS.Or -> "[Or]"
-         | IS.And -> "[And]"
-         | IS.Gt -> "[Greater]"
-         | IS.Lt -> "[Less]"
-         | IS.Ge -> "[Gequal]"
-         | IS.Le -> "[Lequal]"
-         | IS.Eq -> "[Equal]"
-         | IS.Neq -> "[Not]"
-         | IS.Eqphy -> "[Phyqual]"
+         | IS.Add  -> "[Add] "
+         | IS.Sub  -> "[Sub] "
+         | IS.Mult -> "[Mult] "
+         | IS.Div  -> "[Div] "
+         | IS.Or -> "[Or] "
+         | IS.And -> "[And] "
+         | IS.Gt -> "[Greater] "
+         | IS.Lt -> "[Less] "
+         | IS.Ge -> "[Gequal] "
+         | IS.Le -> "[Lequal] "
+         | IS.Eq -> "[Equal] "
+         | IS.Neq -> "[Not] "
+         | IS.Eqphy -> "[Phyqual] "
        end
-    | IS.Let(id)       -> sprintf " [Let(%s)] " id
-    | IS.EndLet(id)    -> sprintf " [EndLet(%s)] " id
+    | IS.Let(id)       -> sprintf "[Let(%s)] " id
+    | IS.EndLet(id)    -> sprintf "[EndLet(%s)] " id
     | IS.MkClos(id, c) ->
-       sprintf " [MkClos(%s, %s)] " id
+       sprintf "[MkClos(%s, %s)] " id
                (String.concat "" (List.map (fun i -> string_of_inst i) c))
-    | IS.Return -> sprintf " [Return] "
-    | IS.Apply  -> sprintf " [Apply] "
-    | IS.Alloc  -> sprintf " [Alloc] "
-    | IS.Store  -> sprintf " [Store] "
-    | IS.Load   -> sprintf " [Load] "
-    | IS.Dup    -> sprintf " [Dup] "
-    | IS.Drop   -> sprintf " [Drop] "
-    | IS.Unit   -> sprintf " [Unit] "
-    | IS.Spawn  -> sprintf " %s[Spawn]%s" warn_color code_color
-    | IS.Cond(e1, e2) -> sprintf " [Cond(e1, e2)] "
-    | IS.Loop(c, e)   -> sprintf " [Loop(c, e)] "
-    | IS.Show(len)    -> sprintf " [Show(%d)] " len
-    | IS.Wait         -> sprintf "[Wait]"
-    | IS.Join         -> sprintf "[Join]"
+    | IS.Return -> sprintf "[Return] "
+    | IS.Apply  -> sprintf "[Apply] "
+    | IS.Alloc  -> sprintf "[Alloc] "
+    | IS.Store  -> sprintf "[Store] "
+    | IS.Load   -> sprintf "[Load] "
+    | IS.Dup    -> sprintf "[Dup] "
+    | IS.Drop   -> sprintf "[Drop] "
+    | IS.Unit   -> sprintf "[Unit] "
+    | IS.Spawn  -> sprintf "%s[Spawn]%s " warn_color code_color
+    | IS.Cond(e1, e2) -> sprintf "[Cond(e1, e2)] "
+    | IS.Loop(c, e)   -> sprintf "[Loop(c, e)] "
+    | IS.Show(len)    -> sprintf "[Show(%d)] " len
+    | IS.Wait         -> sprintf "[Wait] "
+    | IS.Join         -> sprintf "[Join] "
     | _ -> failwith"VM::string_of_inst::Not implemented"
   in s
        

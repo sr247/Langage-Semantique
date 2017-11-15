@@ -1,1 +1,1 @@
-( fun x ->  [Lookup(x)]  [Return] )
+( fun x -> [Lookup(x)] [Return] )

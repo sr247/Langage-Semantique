@@ -1,1 +1,1 @@
-( fun x ->  [Int(1)]  [Let(y)]  [Lookup(x)]  [Int(10)]  [Lookup(y)]  [Add]  [Add]  [Return] )
+( fun x -> [Int(1)] [Let(y)] [Lookup(x)] [Int(10)] [Lookup(y)] [Add] [Add] [Return] )

@@ -1,1 +1,1 @@
-( fun x ->  [MkClos(y,  [Int(13)]  [Let(z)]  [Lookup(z)]  [Lookup(y)]  [Lookup(x)]  [Add]  [Add]  [Return] )]  [Return] )
+( fun x -> [MkClos(y, [Int(13)] [Let(z)] [Lookup(z)] [Lookup(y)] [Lookup(x)] [Add] [Add] [Return] )] [Return] )
